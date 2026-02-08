@@ -1,0 +1,445 @@
+/* @font-face {
+  font-family: "Helv,etica";
+  src: url("fonts/helv,etica.woff2") format("woff2");
+
+} */
+
+/* @import url('https://fonts.cdnfonts.com/css/poppins'); */
+
+
+html,
+body {
+  font-family: "Helvetica", Arial, sans-serif;
+  /* font-family: 'Poppins', sans-serif; */
+  margin: 0;
+  padding: 0;
+  background-color: rgb(34, 32, 36);
+  color: rgb(231, 231, 231);
+  box-sizing: border-box;
+  height: 100%;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  /* overflow-x: hidden; */
+  /* overflow: hidden; */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* width */
+::-webkit-scrollbar {
+  width: 14px;
+  /* display: none; */
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: #414141;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #888;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.container {
+  width: 580px;
+  min-height: 600px;
+  max-height: 600px;
+  border-style: solid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-color: rgb(141, 51, 224);
+  background-color: rgb(34, 32, 36);
+  padding: 3px;
+  /* overflow: hidden; */
+}
+
+.menu {
+  height: 10%;
+  width: 100%;
+  background-color: rgb(34, 32, 36);
+  /* border-top: 2px solid rgb(175, 98, 253); */
+}
+
+.active-tab {
+  border: 1px solid rgb(175, 98, 253);
+}
+
+.fs18 {
+  font-size: 18px;
+
+}
+
+.grey {
+  color: grey
+}
+
+[tab] {}
+
+.section {
+  border-bottom: solid 1px;
+  font-size: 18px;
+}
+
+/* .menu {
+  display: flex;
+  width: 100%;
+  border-bottom: 1px solid rgb(143, 143, 143);
+  padding: 5px;
+  margin: 3px;
+  justify-content: space-between;
+} */
+
+.pages {
+  display: flex;
+  width: 100%;
+  border-bottom: 1px solid rgb(143, 143, 143);
+  margin-bottom: 4px;
+  /* padding: 5px; */
+  /* margin: 3px; */
+  justify-content: space-between;
+}
+
+.out,
+.in {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 4px;
+  /* flex-grow: 1; */
+  height: 90%;
+  overflow: auto;
+  overflow-x: hidden;
+}
+
+[page] {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-height: 100%;
+  padding: 3px;
+  /* overflow: hidden; */
+}
+
+.main_favs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+[page] {
+  display: none;
+}
+
+.stream,
+.vod {
+  display: flex;
+  background-color: rgb(0, 0, 0);
+  height: 80px;
+  width: 99%;
+  padding: 3px;
+  border-radius: 6px;
+  gap: 5px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.pk * {
+  pointer-events: none;
+}
+
+.pen * {
+  pointer-events: none;
+}
+
+.test {
+  background-color: rgb(94, 94, 94);
+}
+
+.stream:hover {
+  /* background-color: rgb(109, 109, 109); */
+}
+
+.stream * {
+  pointer-events: none;
+}
+
+.vod * {
+  pointer-events: none;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+.profile_pic {
+  /* height: 30px; */
+  height: 100%;
+  border-radius: 99%;
+  /* margin-right: 3px; */
+  aspect-ratio: 1;
+}
+
+.misc {
+  display: flex;
+  flex-direction: column;
+  align-items: end;
+  justify-content: space-between;
+}
+
+.cursor {
+  cursor: pointer;
+}
+
+.button {
+  align-self: center;
+  display: flex;
+  width: 80px;
+  justify-content: center;
+  align-items: center;
+  border-radius: 2px;
+  background-color: rgb(0, 0, 0);
+  height: 25px;
+  cursor: pointer;
+}
+
+.truncate {
+  /* max-width: 300px; */
+  /* max-width: 95%; */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.text-center {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.icon {
+  pointer-events: all;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.icon>* {
+  pointer-events: none;
+}
+
+.icon-on {
+  pointer-events: all;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.icon:hover {
+  background-color: rgb(128, 128, 128);
+}
+
+.ihl:hover {
+  background-color: rgb(128, 128, 128);
+}
+
+.pointer {
+  pointer-events: all;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.cursor {
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.tcolor {
+  /* color: rgb(149, 43, 255); */
+  color: rgb(175, 98, 253);
+}
+
+.bgcolor {
+  background-color: rgb(155, 61, 250);
+}
+
+.auth {
+  height: 50px;
+  width: 110px;
+  display: flex;
+  gap: 5px;
+  padding: 2px;
+  align-items: center;
+  justify-content: space-around;
+
+  /* font-size: 16px; */
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.border {
+  border-style: solid;
+  border-width: 1px;
+}
+
+.bg-white {
+  background-color: aliceblue
+}
+
+.aspect {
+  aspect-ratio: 1;
+}
+
+.reddot {
+  background-color: red;
+  border-radius: 99%;
+  /* max-width: 12px;
+  min-width: 12px;
+  max-height: 12px; */
+  width: 12px;
+  aspect-ratio: 1;
+  margin-right: 2px;
+}
+
+.flex {
+  display: flex;
+  align-items: center;
+}
+
+.scroll-bar {
+  min-height: 5%;
+  width: 12px;
+  background-color: rgb(80, 80, 80);
+  position: fixed;
+  right: 10px;
+  border-radius: 1px;
+}
+
+.scroll-bar:hover {
+  background-color: rgb(110, 110, 110);
+
+}
+
+
+
+.buts>* {
+  /* position: fixed; */
+  /* transform: translate(5,5); */
+}
+
+.space-evenly {
+  justify-content: space-evenly;
+}
+
+.space-between {
+  display: flex;
+  justify-content: space-between;
+}
+
+.bg-red {
+  background-color: crimson;
+}
+
+.bg-purple {
+  background-color: rgb(148, 54, 241);
+}
+
+.bg-dark {
+  background-color: rgb(0, 0, 0);
+}
+
+.gap {
+  gap: 4px;
+}
+
+.channel {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  background-color: black;
+  height: 50px;
+  font-size: 24px;
+  width: 99%;
+}
+
+.channel>img {
+  border-radius: 99%;
+  height: 100%;
+  aspect-ratio: 1;
+}
+
+.end {
+  justify-content: end;
+}
+
+.option {
+  height: 40px;
+  width: 100%;
+  background-color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 22px;
+  padding: 0 4px;
+  border-bottom: #777 solid 1px
+}
+
+.hl2:hover {
+  background-color: #555;
+}
+
+.justify-between {
+  display: flex;
+  justify-content: space-between;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.support {
+  position: absolute;
+  right: 0.5%;
+  bottom: 0.5%;
+  height: 48px;
+  width: 128px;
+  width: content; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: #555 solid 1px;
+  padding: 1px;
+  gap: 1px;
+  cursor: pointer;
+  font-size: 15px;
+  background-color: #000000;
+}
