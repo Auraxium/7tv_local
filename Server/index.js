@@ -23,6 +23,8 @@ db.exec(`
   )
   `)
 
+const types = {}
+
 app.use(cors());
 
 app.get('/emote', async (req, res) => {
@@ -46,7 +48,6 @@ app.get('/streamer', async (req, res) => {
   // console.log(streamer)
   if (!streamer?.emotes) {
     if (!req.query.id) return res.status(500).send('Error: no streamer with username');
-
     let fet = await Promise.all([
       fetch(`https://7tv.io/v3/users/twitch/${req.query.id}`).then(res => res.json()).then(res => {
         if (!res.emote_set?.emotes?.length) return null;
@@ -56,7 +57,6 @@ app.get('/streamer', async (req, res) => {
           type: '7tv'
         }))
       }).catch(err => null),
-
       fetch(`https://api.betterttv.net/3/cached/users/twitch/${req.query.id}`).then(res => res.json()).then(res => {
         if (!res.channelEmotes?.length) return null;
         return res.channelEmotes.map(e => ({
