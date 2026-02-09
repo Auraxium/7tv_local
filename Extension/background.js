@@ -17,6 +17,13 @@ if (chrome?.runtime?.onMessage) {
   });
 }
 
+chrome.webRequest.onCompleted.addListener(
+  (details) => {
+    console.log("Request detected:", details.url);
+  },
+  { urls: ["https://edge.ads.twitch.tv/*"] }
+);
+
 
 function main() {
 

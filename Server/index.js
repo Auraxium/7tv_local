@@ -22,8 +22,20 @@ db.exec(`
     date INTEGER
   )
   `)
+// db.exec('drop table streamers')
 
-const types = {}
+function isHexFast(str) {
+  for (let i = 0; i < str.length; i++) {
+    const charCode = str.charCodeAt(i);
+    const isHexChar =
+      (charCode >= 48 && charCode <= 57) ||  // 0-9
+      (charCode >= 65 && charCode <= 70) ||  // A-F
+      (charCode >= 97 && charCode <= 102);   // a-f
+
+    if (!isHexChar) return false;
+  }
+  return str.length > 0;
+}
 
 app.use(cors());
 
@@ -32,7 +44,8 @@ app.get('/emote', async (req, res) => {
   let emote = db.prepare('SELECT img FROM emotes WHERE id = ?').get(req.query.id);
   // console.log(emote);
   if (!emote?.img) {
-    let imageBuffer = await fetch(`https://cdn.7tv.app/emote/${req.query.id}/1x.webp`).then(res => res.arrayBuffer()).catch(err => null);
+    let link = isHexFast(req.query.id) ? `cdn.betterttv.net/emote/${req.query.id}/1x` : `https://cdn.7tv.app/emote/${req.query.id}/1x.webp`;
+    let imageBuffer = await fetch(link).then(res => res.arrayBuffer()).catch(err => null);
     if (!imageBuffer) return res.end(null);
     emote = { img: Buffer.from(imageBuffer) };
     db.prepare(`INSERT OR IGNORE INTO emotes VALUES (?,?,?)`).run(req.query.id, emote.img, Date.now())
@@ -48,35 +61,26 @@ app.get('/streamer', async (req, res) => {
   // console.log(streamer)
   if (!streamer?.emotes) {
     if (!req.query.id) return res.status(500).send('Error: no streamer with username');
+    let username = '';
+
     let fet = await Promise.all([
       fetch(`https://7tv.io/v3/users/twitch/${req.query.id}`).then(res => res.json()).then(res => {
         if (!res.emote_set?.emotes?.length) return null;
-        return res.emote_set.emotes.map(e => ({
-          name: e.name,
-          id: e.id,
-          type: '7tv'
-        }))
+        username = res.username;
+        return res.emote_set.emotes.map(e => [e.name, e.id]);
       }).catch(err => null),
       fetch(`https://api.betterttv.net/3/cached/users/twitch/${req.query.id}`).then(res => res.json()).then(res => {
         if (!res.channelEmotes?.length) return null;
-        return res.channelEmotes.map(e => ({
-          name: e.code,
-          id: e.id,
-          type: 'bttv'
-        }))
+        return res.channelEmotes.map(e => [e.code, e.id]);
       }).catch(err => null)
     ]);
     // console.log(fet)
-    fet = fet.flat();
-    if (!fet?.length) return res.status(500).send('Error: no streamer or emotes');
-    streamer = {
-      name: fet.username,
-      emotes: fet.reduce((acc, e) => {
-        acc[e.name] = e;
-        return acc;
-      }, {})
-    }
-    db.prepare(`INSERT OR IGNORE INTO streamers VALUES (?,?,?,?)`).run(req.query.id, streamer.name, JSON.stringify(streamer.emotes), Date.now());
+    let emotes = fet.flat().filter(Boolean);
+    if (!emotes?.length) return res.status(500).send('Error: no streamer or emotes');
+    emotes = Object.fromEntries(emotes);
+    // return console.log(emotes)
+    streamer = { username, emotes };
+    db.prepare(`INSERT OR IGNORE INTO streamers VALUES (?,?,?,?)`).run(req.query.id, streamer.username, JSON.stringify(streamer.emotes), Date.now());
   } else {
     streamer.emotes = JSON.parse(streamer.emotes);
   }
@@ -88,3 +92,5 @@ app.get('/streamer', async (req, res) => {
 
 
 app.listen(3124, (port) => console.log('started on 3124'))
+
+// https://edge.ads.twitch.tv/2018-01-01/3p/ads?cid=436206574&rt=vast3&dur=30&geoc=US&dt=2&pid=2776469337031770589699104&cb=1318960&ws=754x734&u=https%3A%2F%2Fwww.twitch.tv%2Fvideos%2F2692445092&slots=%5B%7B%22id%22%3A%22twitch-player-ui%22%2C%22mt%22%3A%22v%22%2C%22kv%22%3A%7B%7D%2C%22s%22%3A%22640x480%22%7D%5D&pj=%7B%22game%22%3A%22just_chatting%22%2C%22chan%22%3A%22forsen%22%2C%22chanid%22%3A%2222484632%22%2C%22twitchcorrelator%22%3A%22JtR7mdaevVejGDDgeEkVfjKG3VoLDMoE%22%2C%22ad_session_id%22%3A%22JtR7mdaevVejGDDgeEkVfjKG3VoLDMoE%22%2C%22embed%22%3A%22false%22%2C%22platform%22%3A%22web%22%2C%22mature%22%3A%22true%22%2C%22pos%22%3A%221%22%2C%22timebreak%22%3A%2230%22%2C%22tag%22%3A%22%22%2C%22content_labels%22%3A%22%22%2C%22chantype%22%3A%22partner%22%2C%22delivery_type%22%3A%22csai%22%2C%22vb%22%3A%22null%22%2C%22adunit%22%3A%22web_csai%22%2C%22loggedin%22%3A%22true%22%2C%22v%22%3A%22ARCHIVE%22%2C%22vod_type%22%3A%22undefined%22%2C%22embed_url%22%3A%22null%22%2C%22game_id%22%3A%22509658%22%2C%22user_lang%22%3A%22en%22%7D&gdprl=%7B%22status%22%3A%22cmp%22%7D&pbid=twitch&bp=preroll&aid=TFFAHt7udwYizgjCFte7WzcwunY4zmL8&ulang=en
