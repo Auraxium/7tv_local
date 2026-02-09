@@ -47,9 +47,6 @@ let query = 'img[data-test-selector=image_test_selector]';
   observer.observe(document.querySelector('.channel-root__right-column'), { childList: true, subtree: true });
 })();
 
-// class="Layout-sc-1xcs6mc-0 nvivF chat-scrollable-area__message-container chat-scrollable-area__message-container--paused" 
-// data-test-selector="chat-scrollable-area__message-container" 
-// role="log"
 
 var callback = function (mutationsList, observer) {
   for (var mutation of mutationsList) {
@@ -67,6 +64,10 @@ var callback = function (mutationsList, observer) {
 };
 
 //sessionstorage now stores new watchstreak with id, and doesnt update till stream loads. so right when page load capture session storage keys, wait till stream load, find the new key. else query name
+
+// class="Layout-sc-1xcs6mc-0 nvivF chat-scrollable-area__message-container chat-scrollable-area__message-container--paused" 
+// data-test-selector="chat-scrollable-area__message-container" 
+// role="log"
 
 35780889
 42360116
