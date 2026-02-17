@@ -3,11 +3,13 @@ const app = express();
 const cors = require("cors");
 const Database = require('better-sqlite3');
 const db = new Database('data.db');
-db.pragma('journal_mode = WAL');
+// db.pragma('journal_mode = WAL');
 //01G3WEGZN0000ET2J0MQP5YJ0G
 //cdn.7tv.app/emote/01G3WEGZN0000ET2J0MQP5YJ0G/1x.webp 1x, //cdn.7tv.app/emote/01FFRN3K3R0009CAK0J1469HYB/2x.webp 2x, //cdn.7tv.app/emote/01FFRN3K3R0009CAK0J1469HYB/4x.webp 4x
 //https://api.betterttv.net/3/cached/users/twitch/22484632
 //cdn.betterttv.net/emote/5e87b595acae25096140ca84/1x 1x, //cdn.betterttv.net/emote/5e87b595acae25096140ca84/2x 2x, //cdn.betterttv.net/emote/5e87b595acae25096140ca84/3x 4x
+//https://api.frankerfacez.com/v1/user/forsen
+//cdn.frankerfacez.com/emote/381875/1 1x, //cdn.frankerfacez.com/emote/381875/2 2x, //cdn.frankerfacez.com/emote/381875/4 4x
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS emotes (
@@ -20,9 +22,18 @@ db.exec(`
     username TEXT,
     emotes JSON,
     date INTEGER
+  );
+  CREATE TABLE IF NOT EXISTS misc (
+    key TEXT PRIMARY KEY,
+    value TEXT
   )
   `)
-// db.exec('drop table streamers')
+// db.exec('drop table misc')
+
+let cred = db.prepare("SELECT value FROM misc WHERE key = 'cred'").get()
+cred = cred?.value ? JSON.parse(cred.value) : null;
+console.log(cred)
+let cache = {};
 
 function isHexFast(str) {
   for (let i = 0; i < str.length; i++) {
@@ -38,6 +49,15 @@ function isHexFast(str) {
 }
 
 app.use(cors());
+
+app.post('/creds', express.json(), (req, res) => {
+  if (req.body.cred?.access_token) {
+    cred = req.body.cred;
+    db.prepare('insert or ignore into misc values (?,?)').run('cred', JSON.stringify(cred));
+  } 
+  console.log(req.body, cred)
+  res.end();
+})
 
 app.get('/emote', async (req, res) => {
   if (!req.query.id) return res.end();
@@ -56,20 +76,32 @@ app.get('/emote', async (req, res) => {
 
 app.get('/streamer', async (req, res) => {
   let streamer;
-  if (req.query.username) streamer = db.prepare('SELECT emotes FROM streamers WHERE username = ?').get(req.query.username); // {name: id}
-  else streamer = db.prepare('SELECT emotes FROM streamers WHERE id = ?').get(req.query.id);
+  let username = req.query.username;
+  let id = req.query.id;
+  if(!username && !id) return res.end();
+  if (username) streamer = db.prepare('SELECT emotes FROM streamers WHERE username = ?').get(username); // {name: id}
+  else if (id) streamer = db.prepare('SELECT emotes FROM streamers WHERE id = ?').get(id);
   // console.log(streamer)
   if (!streamer?.emotes) {
-    if (!req.query.id) return res.status(500).send('Error: no streamer with username');
-    let username = '';
+    if (!id && username && cred) {
+      let ax = await fetch(`https://api.twitch.tv/helix/users?login=${username}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${cred.access_token}`,
+          "Client-Id": "0helgn8mxggk3ffv53sxgqrmkdojb3",
+        },
+      }).then((res) => res.json()).catch(console.log);
+      if (!ax?.data[0]?.id) return res.status(500).send('Error: no streamer with username');
+      id = ax.data[0].id;
+    }
 
     let fet = await Promise.all([
-      fetch(`https://7tv.io/v3/users/twitch/${req.query.id}`).then(res => res.json()).then(res => {
+      fetch(`https://7tv.io/v3/users/twitch/${id}`).then(res => res.json()).then(res => {
         if (!res.emote_set?.emotes?.length) return null;
         username = res.username;
         return res.emote_set.emotes.map(e => [e.name, e.id]);
       }).catch(err => null),
-      fetch(`https://api.betterttv.net/3/cached/users/twitch/${req.query.id}`).then(res => res.json()).then(res => {
+      fetch(`https://api.betterttv.net/3/cached/users/twitch/${id}`).then(res => res.json()).then(res => {
         if (!res.channelEmotes?.length) return null;
         return res.channelEmotes.map(e => [e.code, e.id]);
       }).catch(err => null)
@@ -80,7 +112,7 @@ app.get('/streamer', async (req, res) => {
     emotes = Object.fromEntries(emotes);
     // return console.log(emotes)
     streamer = { username, emotes };
-    db.prepare(`INSERT OR IGNORE INTO streamers VALUES (?,?,?,?)`).run(req.query.id, streamer.username, JSON.stringify(streamer.emotes), Date.now());
+    db.prepare(`INSERT OR IGNORE INTO streamers VALUES (?,?,?,?)`).run(id, streamer.username, JSON.stringify(streamer.emotes), Date.now());
   } else {
     streamer.emotes = JSON.parse(streamer.emotes);
   }
