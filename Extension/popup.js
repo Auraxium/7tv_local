@@ -5,6 +5,12 @@ let port = 'http://localhost:3124';
 // const socket = new WebSocket("wss://example.com/chat");
 chrome.storage.local.get(['7tvlocal_cred']).then(res => console.log(res));
 
+function $(s) {
+  let a = [...document.querySelectorAll(s)];
+  return !a.length?null:a.length==1?a[0]:a
+}
+
+
 async function axi(s) {
   let now = Date.now();
 
@@ -67,6 +73,7 @@ async function auth() {
 }
 
 async function main() {
+  fetch(port+'/creds').catch(err => $('.no-server').innerHTML = 'No server found on port 3124, did you start it?')
 
 }
 

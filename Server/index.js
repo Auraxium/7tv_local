@@ -10,11 +10,19 @@ const db = new Database('data.db');
 //cdn.betterttv.net/emote/5e87b595acae25096140ca84/1x 1x, //cdn.betterttv.net/emote/5e87b595acae25096140ca84/2x 2x, //cdn.betterttv.net/emote/5e87b595acae25096140ca84/3x 4x
 //https://api.frankerfacez.com/v1/user/forsen
 //cdn.frankerfacez.com/emote/381875/1 1x, //cdn.frankerfacez.com/emote/381875/2 2x, //cdn.frankerfacez.com/emote/381875/4 4x
+let pending = {};
 
+// db.exec(`
+//   drop table emotes;
+//   drop table streamers
+//   `)
+// db.exec(`delete from streamers where username = 'emiru'`)
 db.exec(`
   CREATE TABLE IF NOT EXISTS emotes (
     id TEXT PRIMARY KEY,
     img BLOB,
+    name TEXT,
+    type TEXT,
     date INTEGER
   );
   CREATE TABLE IF NOT EXISTS streamers (
@@ -48,15 +56,43 @@ function isHexFast(str) {
   return str.length > 0;
 }
 
+types = {
+  '7tv': (id) => `https://cdn.7tv.app/emote/${id}/1x.webp`,
+  'bttv': (id) => `cdn.betterttv.net/emote/${id}/1x`,
+}
+
+async function batchFetch(arr) {
+  for (let i = 0; i < arr.length; i += 10) {
+    let slice = arr.slice(i, i + 10);
+    await Promise.all(slice.map(async em => {
+      if (pending[em.id]) return null;
+      let exists = db.prepare('select img from emotes where id = ?').get(em.id);
+      if(exists?.img) return;
+      pending[em.id] = 1;
+      let link = types[em.type] && types[em.type](em.id) || 0; //isHexFast(req.query.id) ? `cdn.betterttv.net/emote/${req.query.id}/1x` : `https://cdn.7tv.app/emote/${req.query.id}/1x.webp`;
+      if(!link) return delete pending[em.id];
+      let img = await fetch(link).then(res => res.arrayBuffer()).catch(err => null);
+      if (!img) return delete pending[em.id];
+      console.log('added: ', em.name);
+      db.prepare('insert or ignore into emotes values (?,?,?,?,?)').run(em.id, Buffer.from(img), em.name, em.type, Date.now())
+      delete pending[em.id];
+    }))
+  }
+}
+
 app.use(cors());
 
 app.post('/creds', express.json(), (req, res) => {
   if (req.body.cred?.access_token) {
     cred = req.body.cred;
     db.prepare('insert or ignore into misc values (?,?)').run('cred', JSON.stringify(cred));
-  } 
+  }
   console.log(req.body, cred)
   res.end();
+})
+
+app.get('/creds', (req, res) => {
+  res.json(cred || {})
 })
 
 app.get('/emote', async (req, res) => {
@@ -64,26 +100,30 @@ app.get('/emote', async (req, res) => {
   let emote = db.prepare('SELECT img FROM emotes WHERE id = ?').get(req.query.id);
   // console.log(emote);
   if (!emote?.img) {
-    let link = isHexFast(req.query.id) ? `cdn.betterttv.net/emote/${req.query.id}/1x` : `https://cdn.7tv.app/emote/${req.query.id}/1x.webp`;
-    let imageBuffer = await fetch(link).then(res => res.arrayBuffer()).catch(err => null);
-    if (!imageBuffer) return res.end(null);
-    emote = { img: Buffer.from(imageBuffer) };
-    db.prepare(`INSERT OR IGNORE INTO emotes VALUES (?,?,?)`).run(req.query.id, emote.img, Date.now())
+    console.log('no emote: ', req.query.id);
+    return res.end();
   }
-  res.writeHead(200, { 'Content-Type': 'image/png' });
+  res.writeHead(200, { 
+    'Content-Type': 'image/webp',
+    'Cache-Control': 'public, max-age=31536000'
+  });
   return res.end(emote.img);
 })
+
+function fetchStreamer(username) {
+
+}
 
 app.get('/streamer', async (req, res) => {
   let streamer;
   let username = req.query.username;
   let id = req.query.id;
-  if(!username && !id) return res.end();
+  if (!username && !id) return res.end();
   if (username) streamer = db.prepare('SELECT emotes FROM streamers WHERE username = ?').get(username); // {name: id}
   else if (id) streamer = db.prepare('SELECT emotes FROM streamers WHERE id = ?').get(id);
   // console.log(streamer)
   if (!streamer?.emotes) {
-    if (!id && username && cred) {
+    if (username && cred) {
       let ax = await fetch(`https://api.twitch.tv/helix/users?login=${username}`, {
         method: "GET",
         headers: {
@@ -94,25 +134,26 @@ app.get('/streamer', async (req, res) => {
       if (!ax?.data[0]?.id) return res.status(500).send('Error: no streamer with username');
       id = ax.data[0].id;
     }
-
     let fet = await Promise.all([
       fetch(`https://7tv.io/v3/users/twitch/${id}`).then(res => res.json()).then(res => {
         if (!res.emote_set?.emotes?.length) return null;
         username = res.username;
-        return res.emote_set.emotes.map(e => [e.name, e.id]);
+        return res.emote_set.emotes.map(e => [e.name, { name: e.name, id: e.id, type: '7tv' }]);
       }).catch(err => null),
       fetch(`https://api.betterttv.net/3/cached/users/twitch/${id}`).then(res => res.json()).then(res => {
         if (!res.channelEmotes?.length) return null;
-        return res.channelEmotes.map(e => [e.code, e.id]);
+        return res.channelEmotes.map(e => [e.code, { name: e.code, id: e.id, type: 'bttv' }]);
       }).catch(err => null)
     ]);
     // console.log(fet)
     let emotes = fet.flat().filter(Boolean);
     if (!emotes?.length) return res.status(500).send('Error: no streamer or emotes');
     emotes = Object.fromEntries(emotes);
+    // console.log(emotes)
     // return console.log(emotes)
     streamer = { username, emotes };
     db.prepare(`INSERT OR IGNORE INTO streamers VALUES (?,?,?,?)`).run(id, streamer.username, JSON.stringify(streamer.emotes), Date.now());
+    batchFetch(Object.values(emotes));
   } else {
     streamer.emotes = JSON.parse(streamer.emotes);
   }

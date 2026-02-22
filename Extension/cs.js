@@ -19,8 +19,35 @@ let emotes;
 let query = 'img[data-test-selector=image_test_selector]';
 let READY = false;
 
+function preChat() {
+  if (!READY || !emotes) return;
+  [...document.querySelectorAll('span.text-fragment[data-a-target="chat-message-text"]')].forEach(ele => {
+    let msg = ele?.innerHTML;
+    if (!msg) return;
+
+    let add = msg.split(' ').map(e => {
+      let child;
+      if (emotes[e]) {
+        child = document.createElement('img');
+        child.src = `http://localhost:3124/emote?id=${emotes[e].id}`
+        child.style.margin = '0px 2px';
+        child.style.maxHeight = '26px';
+        child.title = e;
+        child.alt = e;
+        child.loading = 'lazy';
+        child.decoding = "async";
+      } else {
+        child = document.createTextNode(` ${e} `);
+      }
+      return child;
+    })
+    ele.replaceChildren(...add);
+  })
+}
+
 (async () => {
   //get name
+  await waitForDOM('.channel-root__right-column', 1)
   let name = '';
   if (+window.location.pathname.split('/').at(-1)) { // is vod
     for (let e of [...document.querySelectorAll('meta[content]')]) {
@@ -31,7 +58,7 @@ let READY = false;
     }
   } else name = window.location.pathname.split('/').at(-1);
   log(name)
-  
+
   emotes = await fetch(port + `/streamer?username=${name}`).then(res => res.json()).catch(err => console.log(err));
 
   if (!emotes) {//get id
@@ -43,27 +70,26 @@ let READY = false;
   console.log(emotes);
   if (!emotes) return log('couldnt find emotes');
   let observer = new MutationObserver(callback);
-  await waitForDOM('.channel-root__right-column', 1)
   observer.observe(document.querySelector('.channel-root__right-column'), { childList: true, subtree: true });
 })();
 
 var callback = function (mutationsList, observer) {
-  if(!READY) return;
+  if (!READY) return;
   for (var mutation of mutationsList) {
     mutation.addedNodes.forEach(function (node) {
       if (!node?.querySelector) return;
       let ele = node.querySelector('span.text-fragment[data-a-target="chat-message-text"]');
       let msg = ele?.innerHTML;
       if (!msg) return;
-      node.style.display = 'none';
-      
+      // node.style.display = 'none';
+
       let toLoad = 0;
       let add = msg.split(' ').map(e => {
         let child;
-        if(emotes[e]) {
-          toLoad++;
+        if (emotes[e]) {
+          // toLoad++;
           child = document.createElement('img');
-          child.src = `http://localhost:3124/emote?id=${emotes[e]}`
+          child.src = `http://localhost:3124/emote?id=${emotes[e].id}`
           child.onload = () => node.style.display = 'flex';
           child.onerror = () => node.style.display = 'flex';
           child.style.margin = '0px 2px';
@@ -71,11 +97,11 @@ var callback = function (mutationsList, observer) {
           child.title = e;
           child.alt = e;
           child.loading = 'lazy';
-          child.decoding="async";
+          child.decoding = "async";
         } else {
           child = document.createTextNode(` ${e} `);
         }
-        if(!toLoad) node.style.display = 'flex';
+        if (!toLoad) node.style.display = 'flex';
         return child;
       })
       ele.replaceChildren(...add);
@@ -84,18 +110,22 @@ var callback = function (mutationsList, observer) {
 };
 
 let msgs = {
-  start: (e) => READY = !READY,
+  start: (e) => {
+    READY = !READY;
+    log(READY ? 'STARTED' : "ENDED");
+    preChat();
+  },
 };
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // log(request);
+  log(request);
   msgs[request.port] && msgs[request.port](request, sendResponse);
 })
 // log(chrome)
 //sessionstorage now stores new watchstreak with id, and doesnt update till stream loads. so right when page load capture session storage keys, wait till stream load, find the new key. else query name
 
-// class="Layout-sc-1xcs6mc-0 nvivF chat-scrollable-area__message-container chat-scrollable-area__message-container--paused" 
-// data-test-selector="chat-scrollable-area__message-container" 
+// class="Layout-sc-1xcs6mc-0 nvivF chat-scrollable-area__message-container chat-scrollable-area__message-container--paused"
+// data-test-selector="chat-scrollable-area__message-container"
 // role="log"
 
 // document.addEventListener('onload', (e) => console.log('load', e))
